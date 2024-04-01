@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 
+import numpy
+
 @dataclass
-class well:
+class Well:
     """
     radius  : wellbore radius, ft
     skin    : skin factor, dimensionless
@@ -16,5 +18,5 @@ class well:
     press   : float = None
 
     @property
-    def Awb(self):
-        return (numpy.pi*self.radius**2)/4
+    def area(self):
+        return numpy.pi*self.radius**2

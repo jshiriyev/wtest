@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 
+import numpy
+
 @dataclass
-class rrock:
+class RRock:
     """
     perm    : permeability in mD
     poro    : porosity
@@ -13,3 +15,7 @@ class rrock:
     comp    : float = None
     height  : float = None
     radius  : float = None
+
+    @property
+    def area(self):
+        return numpy.pi*self.radius**2

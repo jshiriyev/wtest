@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class phase:
+class Phase:
     """
     visc    : phase viscosity, cp
     rho     : phase density, lb/ft3

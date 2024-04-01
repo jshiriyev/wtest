@@ -4,42 +4,32 @@ import numpy
 
 from scipy.special import expi
 
-class Transient():
+from ._typecurve import TypeCurve
+
+class LineSource(TypeCurve):
     """Calculates well bottomhole pressure in field units for the given
     constant flow rate oil production, single phase flow."""
 
-    def __init__(self,rrock,phase,well,tcomp=None,immob=None):
-        """Initializes reservoir, oil and well properties."""
+    def __init__(self,*args,**kwargs):
+        """Initializes reservoir, oil and wcond properties."""
 
-        self.rrock = rrock
-        self.phase = phase
-        self.tcomp = tcomp
+        super().__init__(*args,**kwargs)
 
-        self.well  = well
-
-        self.immob = immob
-
-    def press(self,time=None,size=50,scale='linear'):
+    def press(self):
         """It calculates delta bottom hole flowing pressure for constant
         flow rate production at transient state, exponential integral solution."""
 
-        if time is not None:
-            self.time = time[time>=self.twell]
+        pseudo_cond = self.time>=self.tbound
 
-        else:
+        pseudo_time = self.time[pseudo_cond]
 
-            if scale == "linear":
-                self.time = numpy.linspace(self.twell,self.tp,size)
-            elif scale == "log":
-                self.time = numpy.logspace(*numpy.log10([self.twell,self.tp]),size)
+    def transient(self,times):
 
-            self._scale = scale
+        Ei = expi(-39.5*(self.wcond.radius**2)/(self.diffuse*times))
 
-        Ei = expi(-39.5*(self.rw**2)/(self.eta*self.time))
+        return self.pzero-self.pcons*(1/2*Ei-self.wcond.skin)
 
-        self._delta = -self.flowterm*(1/2*Ei-self.skin)
-
-    def set_boundary(self,radius=None,area=None):
+    def pseudosteady(self,times):
         """
         Sets the radius of outer circular boundary, ft and calculates
         pseudo steady state solution correcting pressure for boundary effects.
@@ -47,104 +37,19 @@ class Transient():
         If area is not None, the radius is calculated from area [acre].
         """
 
-        if area is not None:
-            radius = numpy.sqrt(area*43560/numpy.pi)
+        term_well = -0.012648*(self.diffuse*times)/self.wcond.radius**2
 
-        self._radius = radius
+        term_edge = -numpy.log(self.rrock.radius/self.wcond.radius)
 
-        pseudo_cond = self.time>=self.tbound
-
-        pseudo_time = self.time[pseudo_cond]
-
-        term_time = -0.012648*(self.eta*pseudo_time)/self.radius**2
-
-        term_boundary = -numpy.log(self.radius/self.rw)
-
-        delta = -self.flowterm*(term_time+term_boundary+3/4-self.skin)
-
-        self._delta[pseudo_cond] = delta
-
-    def view(self,axis=None,pinitial=None,scale=None):
-
-        showFlag = True if axis is None else False
-
-        if axis is None:
-            figure,axis = pyplot.subplots(nrows=1,ncols=1)
-
-        if pinitial is None:
-            yaxis,ylabel = -self.delta,f"Wellbore Pressure Drop [psi]"
-        else:
-            yaxis,ylabel = pinitial+self.delta,"Wellbore Pressure [psi]"
-
-        axis.plot(self.time,yaxis)
-
-        if scale is None:
-            try:
-                scale = self._scale
-            except AttributeError:
-                scale = "linear"
-
-        axis.set_xscale(scale)
-
-        if pinitial is None:
-            axis.invert_yaxis()
-
-        axis.set_xlabel("Time [days]")
-        axis.set_ylabel(ylabel)
-
-        if showFlag:
-            pyplot.show()
-
-    def set_dimensionless(self,pinitial):
-
-        self.pD = (self.rrock.perm*self.rrock.height)/(141.2*self.well.rate/self.fluid.mobil)*(pinitial-self.delta)
-
-        self.tD = (0.00632829*self.rrock.perm*self.time)/(self.rrock.poro*self.fluid.visc*self.ccomp*self.well.radius**2)
-
-        self.CD = (0.8936*self.Cs)/(self.rrock.poro*self.ccomp*self.rrock.height*self.well.radius**2)
-
-    @property
-    def ccomp(self):
-        """Sets the total compressibility. If None,
-        it will try to calculate it from rock and fluid compressibilities."""
-
-        if self.tcomp is not None:
-            return self.tcomp
-
-        irrcomp,irrsat = 0.,0.
-
-        if self.immob is not None:
-            irrcomp,irrsat = self.immob.comp,self.immob.sat
-            
-        return self.rrock.comp+self.phase.comp*(1-irrsat)+irrcomp*irrsat
-
-    @property
-    def eta(self):
-        return self.rrock.perm/(self.rrock.poro*self.fluid.visc*self.ccomp)
-
-    @property
-    def storage(self):
-        return (144*self.well.Awb)/(5.615*self.fluid.rho)
-
-    @property
-    def flowterm(self):
-        return -141.2*(self.well.rate)/(self.fluid.mobil*self.rrock.perm*self.rrock.height)
-
-    @property
-    def radius(self):
-        return self._radius
-
-    @property
-    def delta(self):
-        return self._delta
+        return self.pzero-self.pcons*(term_well+term_edge+3/4-self.wcond.skin)
 
     @property
     def twell(self):
-        return 15802*self.well.radius**2/self.eta
+        return (self.wcond.radius**2)/(self.diffuse)*15802
 
     @property
     def tedge(self):
-        return 39.5*self.rrock.radius**2/self.eta
+        return (self.rrock.radius**2)/(self.diffuse)*39.5
 
 if __name__ == "__main__":
 

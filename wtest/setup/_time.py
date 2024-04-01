@@ -14,6 +14,14 @@ class Time():
 
 	def times(self):
 		"""Returns linearly spaced time data."""
+
+
+		# if scale == "linear":
+		# 	self.time = numpy.linspace(self.twell,self.tp,size)
+		# elif scale == "log":
+		# 	self.time = numpy.logspace(*numpy.log10([self.twell,self.tp]),size)
+
+
 		return numpy.arange(
 			self.total+self.delta/2,step=self.delta)
 
