@@ -1,11 +1,13 @@
-from ._items import reservoir
-from ._items import well
-from ._items import fluid
+from . import tcurves
 
-from ._typecurves import dimless
-from ._typecurves import everdingen
-from ._typecurves import agarwal
-from ._typecurves import finite
+from . import buildup
+from . import ddown
 
-from ._buildup import buildup
+from .setup._rrock import RRock
+from .setup._fluid import Fluid
+
+from .setup._well import Well
+from .setup._time import Time
+
+
 
